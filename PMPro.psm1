@@ -205,7 +205,7 @@ function pmproGetResources()
       the identifier of the Instance defined in your myPMPro.ps1 file
 
      .Example
-      # Check credentials for mbe.gan@gmail.com against the prod okta org
+      # Get all the resources that are available to the user defined by the token in the prod instance
       pmproGetResources -inst prod
     #>
 
