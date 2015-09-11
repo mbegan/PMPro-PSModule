@@ -56,14 +56,14 @@ function _restThrowError()
 
         try
         {
-            $OktaSays = ConvertFrom-Json -InputObject $text
+            $resp = ConvertFrom-Json -InputObject $text
         }
         catch
         {
             throw $text
         }
     
-        $formatError = New-Object System.FormatException -ArgumentList ($OktaSays.errorCode + " : " + $OktaSays.errorSummary)
+        $formatError = New-Object System.FormatException -ArgumentList ($resp.errorCode + " : " + $resp.errorSummary)
         $formatError.HelpLink = $text
         $formatError.Source = $Error[0].Exception
 
