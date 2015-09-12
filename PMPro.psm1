@@ -1,9 +1,7 @@
 ﻿#using the httputility from system.web
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web") | out-null
 
-$ExecutionContext.SessionState.Module.OnRemove = {
-    Remove-Module myPMPro
-}
+$ExecutionContext.SessionState.Module.OnRemove = { Remove-Module myPMPro }
 
 function pmproNewPassword
 {
@@ -99,9 +97,9 @@ function _pmproRestCall()
         
     if ($PMPInstances[$inst].encToken)
     {
-        $token = "?AUTHTOKEN" + ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((ConvertTo-SecureString -string ($PMPInstances[$inst].encToken).ToString()))))
+        $token = "?AUTHTOKEN=" + ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((ConvertTo-SecureString -string ($PMPInstances[$inst].encToken).ToString()))))
     } else {
-        $token = "?AUTHTOKEN" + (($PMPInstances[$inst].AuthToken).ToString())
+        $token = "?AUTHTOKEN=" + (($PMPInstances[$inst].AuthToken).ToString())
     }
 
     $headers = New-Object System.Collections.Hashtable
@@ -110,12 +108,8 @@ function _pmproRestCall()
     $_c = $headers.add('Accept-Encoding','gzip,deflate')
 
     [string]$encoding = "application/json"
-    if ($resource -like 'https://*')
-    {
-        [string]$URI = $resource
-    } else {
-        [string]$URI = ($PMPInstances[$inst].baseUrl).ToString() + $resource
-    }
+
+    [string]$URI = ($PMPInstances[$inst].baseUrl).ToString() + $resource + $token
     $request = [System.Net.HttpWebRequest]::CreateHttp($URI)
     $request.Method = $method
     if ($PMProVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
