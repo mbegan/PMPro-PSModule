@@ -112,7 +112,7 @@ function _pmproRestCall()
     [string]$URI = ($PMPInstances[$inst].baseUrl).ToString() + $resource + $token
     $request = [System.Net.HttpWebRequest]::CreateHttp($URI)
     $request.Method = $method
-    if ($PMProVerbose) { Write-Host '[' $request.Method $request.RequestUri ']' -ForegroundColor Cyan}
+    if ($PMProVerbose) { Write-Host '[' $request.Method (($request.RequestUri.ToString()).Replace($token,'?AUTHTOKEN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX')) ']' -ForegroundColor Cyan}
 
     $request.Accept = $encoding
     $request.UserAgent = "pmproSpecific PowerShell script(V2)"
@@ -183,7 +183,38 @@ function _pmproRestCall()
         catch{}
     }
 
-    return $psobj
+    if ($psobj.operation.result.status -eq 'Success')
+    {
+        return $psobj
+    } else {
+        Throw ($psobj.operation.result.status + ": " + $psobj.operation.result.message)
+    }    
+}
+
+function _pmproBuildResourceBody()
+{
+    param
+    (
+        [parameter(Mandatory=$true)][alias("resourceName")][String]$rName,
+        [parameter(Mandatory=$true)][alias("resourceDesc")][String]$rDesc,
+        [parameter(Mandatory=$true)][alias("resourceURL")][String]$rURL,
+        [parameter(Mandatory=$true)][alias("department")][String]$department
+
+    )
+                    RESOURCENAME = "test1"
+                    RESOURCEDESCRIPTION = "THIS IS A DES of a resource"
+                    RESOURCETYPE = "Windows"
+                    RESOURCEURL = "https://www.wackwack"
+                    DEPARTMENT = ""
+                    DNSNAME = "test1.d.v.tld"
+                    LOCATION = ""
+                    ACCOUNTNAME = "matt2"                   
+                    PASSWORD = "Password1@12345#78"
+                    NOTES = "notes about the account"
+                    OWNERNAME = "megan@varian.com"
+                    RESOURCECUSTOMFIELD = (New-Object System.Collections.ArrayList)
+                    ACCOUNTCUSTOMFIELD = (New-Object System.Collections.ArrayList)
+
 }
 
 function pmproGetResources()
@@ -222,7 +253,105 @@ function pmproGetResources()
         }
         throw $_
     }
+
+    $reshash = New-Object System.Collections.Hashtable
+    foreach ($res in $request.operation.Details)
+    {
+        $_c = $reshash.Add($res.'RESOURCE NAME',$res)
+    }
+    return $reshash
+}
+
+function pmproGetAccountsbyResource()
+{
+    <# 
+         .Synopsis
+          Used to Retrieve ALL Accounts availble to the requestor for a given resource in Credential Manager
+
+         .Description
+          Returns an Object representing the collection of Accounts
+
+         .Parameter inst
+          the identifier of the Instance defined in your myPMPro.ps1 file
+
+          .Parameter ResourceID
+          the identifier of the Resource for which you want to return Accounts for
+
+         .Example
+          # Get all the Accounts that are available to the user defined by the token in the prod instance for the Resource Identified as 123
+          pmproGetResources -inst prod -ResourceID 123
+    #>
+    param
+    (
+        [parameter(Mandatory=$true)][alias("instance")][String]$inst,
+        [parameter(Mandatory=$true)][alias("ResourceID")][String]$rid
+    )
+    
+    [string]$method = "GET"
+    [string]$resource = "/restapi/json/v1/resources/" + $rid + "/accounts"
+
+    try
+    {
+        $request = _pmproRestCall -inst $inst -method $method -resource $resource
+    }
+    catch
+    {
+        if ($PMProVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    $acthash = New-Object System.Collections.Hashtable
+    foreach ($act in $request.operation.Details.'ACCOUNT LIST')
+    {
+        $_c = $acthash.Add($act.'ACCOUNT NAME',$act)
+    }
+    #return $acthash
     return $request
+}
+
+function pmproGetPasswordforResouceAccount()
+{
+    <# 
+         .Synopsis
+          Used to Retrieve A credential availble to the requestor for a given resource in Credential Manager
+
+         .Description
+          Returns an Object representing the collection of Accounts
+
+         .Parameter inst
+          the identifier of the Instance defined in your myPMPro.ps1 file
+
+          .Parameter ResourceID
+          the identifier of the Resource for which you want to return Accounts for
+
+         .Example
+          # Get all the Accounts that are available to the user defined by the token in the prod instance for the Resource Identified as 123
+          pmproGetResources -inst prod -ResourceID 123
+    #>
+    param
+    (
+        [parameter(Mandatory=$true)][alias("instance")][String]$inst,
+        [parameter(Mandatory=$true)][alias("ResourceID")][String]$rid,
+        [parameter(Mandatory=$true)][alias("AccountID")][String]$aid
+    )
+    
+    [string]$method = "GET"
+    [string]$resource = "/restapi/json/v1/resources/" + $rid + "/accounts/" + $aid + "/password"
+    try
+    {
+        $request = _pmproRestCall -inst $inst -method $method -resource $resource
+    }
+    catch
+    {
+        if ($PMProVerbose -eq $true)
+        {
+            Write-Host -ForegroundColor red -BackgroundColor white $_.TargetObject
+        }
+        throw $_
+    }
+    return $request.operation.Details.PASSWORD
 }
 
 Export-ModuleMember -Function pmpro*
